@@ -28,6 +28,7 @@ import (
 	"io/ioutil"
 	"log"
 	"math/rand"
+	"net/http"
 	"os"
 	"testing"
 
@@ -104,6 +105,11 @@ func setup() *Unsplash {
 	client := oauth2.NewClient(oauth2.NoContext, ts)
 	return New(client)
 }
+
+func simpleSetup() *Unsplash {
+	return New(http.DefaultClient)
+}
+
 func TestUnsplash(T *testing.T) {
 	assert := assert.New(T)
 	log.SetOutput(ioutil.Discard)
@@ -210,4 +216,24 @@ func TestUpdateCurrentUser(T *testing.T) {
 	assert.Nil(err)
 	assert.NotNil(user)
 	assert.NotNil(resp)
+}
+
+func TestSetAuthorizationHeader(T *testing.T) {
+	log.SetOutput(ioutil.Discard)
+	assert := assert.New(T)
+
+	unsplash := simpleSetup()
+	appID := getAppAuth().AppID
+	unsplash.SetAppID(appID)
+
+	photos, _, err := unsplash.Photos.Random(&RandomPhotoOpt{SearchQuery: "water", Count: 1})
+
+	assert.Nil(err)
+	assert.True(len(*photos) == 1)
+
+	unsplash.SetAppID("")
+	photos, _, err = unsplash.Photos.Random(&RandomPhotoOpt{SearchQuery: "water", Count: 1})
+
+	assert.NotNil(err)
+	assert.Nil(photos)
 }
